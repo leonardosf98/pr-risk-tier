@@ -23,7 +23,7 @@ class Classification:
 def classify(files: Iterable[str], rules: Rules) -> Classification:
     grouped: dict[tuple[str, int], list[str]] = {}
     for path in sorted(set(files)):
-        grouped.setdefault(_strongest_rule(path, rules), []).append(path)
+        grouped.setdefault(strongest_rule(path, rules), []).append(path)
 
     reasons = tuple(
         sorted(
@@ -34,7 +34,7 @@ def classify(files: Iterable[str], rules: Rules) -> Classification:
     return Classification(tier=max((reason.tier for reason in reasons), default=0), reasons=reasons)
 
 
-def _strongest_rule(path: str, rules: Rules) -> tuple[str, int]:
+def strongest_rule(path: str, rules: Rules) -> tuple[str, int]:
     matched = [rule for rule in rules.rules if any(matches(path, p) for p in rule.paths)]
     if not matched:
         return DEFAULT_REASON_ID, rules.default_tier
