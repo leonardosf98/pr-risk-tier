@@ -1,0 +1,50 @@
+name: pr-evidence
+description: Comenta em cada pull request um pacote de evidências com tier de risco determinístico.
+author: leonardosf98
+
+inputs:
+  rules-file:
+    description: Caminho do arquivo de regras no repositório que usa a action.
+    default: .github/pr-evidence.toml
+  github-token:
+    description: Token com permissão pull-requests:write.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build evidence comment
+      shell: bash
+      env:
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        RULES_FILE: ${{ inputs.rules-file }}
+        FILES_LIST: ${{ runner.temp }}/pr-evidence-files.txt
+        COMMENT_FILE: ${{ runner.temp }}/pr-evidence.md
+      run: |
+        if [ -z "$PR_NUMBER" ]; then
+          echo "::error::pr-evidence só roda em eventos pull_request."
+          exit 1
+        fi
+        git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$FILES_LIST"
+        PYTHONPATH="$GITHUB_ACTION_PATH" python3 -m pr_evidence \
+          --rules "$RULES_FILE" --files "$FILES_LIST" --output "$COMMENT_FILE"
+        cat "$COMMENT_FILE" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Publish evidence comment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        COMMENT_FILE: ${{ runner.temp }}/pr-evidence.md
+      run: |
+        comment_id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+          --jq '.[] | select(.body | startswith("<!-- pr-evidence:comment -->")) | .id' | head -n 1)
+        if [ -n "$comment_id" ]; then
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment_id" \
+            -F body=@"$COMMENT_FILE" > /dev/null
+        else
+          gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            -F body=@"$COMMENT_FILE" > /dev/null
+        fi
