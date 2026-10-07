@@ -1,6 +1,5 @@
-from pr_risk_tier.evidence import Evidence, FileMix, JobResult, Size
-
 from pr_risk_tier.classify import DEFAULT_REASON_ID, Classification, Reason
+from pr_risk_tier.evidence import Evidence, FileMix, JobResult, Size
 from pr_risk_tier.render import MARKER, render_comment
 from pr_risk_tier.rules import load_rules
 

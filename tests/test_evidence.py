@@ -11,7 +11,6 @@ from pr_risk_tier.evidence import (
     parse_numstat,
     unmatched_patterns,
 )
-
 from pr_risk_tier.rules import load_rules
 
 RULES = load_rules(
