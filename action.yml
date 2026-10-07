@@ -7,7 +7,7 @@ inputs:
     description: Caminho do arquivo de regras no repositório que usa a action.
     default: .github/pr-risk-tier.toml
   github-token:
-    description: Token com permissão pull-requests:write.
+    description: Token com permissões pull-requests:write e actions:read.
     default: ${{ github.token }}
 
 runs:
@@ -16,20 +16,30 @@ runs:
     - name: Build evidence comment
       shell: bash
       env:
+        GH_TOKEN: ${{ inputs.github-token }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
         HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         RULES_FILE: ${{ inputs.rules-file }}
-        FILES_LIST: ${{ runner.temp }}/pr-risk-tier-files.txt
+        WORK_DIR: ${{ runner.temp }}/pr-risk-tier
         COMMENT_FILE: ${{ runner.temp }}/pr-risk-tier.md
       run: |
         if [ -z "$PR_NUMBER" ]; then
           echo "::error::pr-risk-tier só roda em eventos pull_request."
           exit 1
         fi
-        git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$FILES_LIST"
+        mkdir -p "$WORK_DIR"
+        git -c core.quotePath=false diff --numstat --no-renames "$BASE_SHA...$HEAD_SHA" > "$WORK_DIR/numstat.txt"
+        git -c core.quotePath=false ls-files > "$WORK_DIR/repo-files.txt"
+        jobs_url="repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/attempts/$GITHUB_RUN_ATTEMPT/jobs?per_page=100"
+        if ! gh api "$jobs_url" > "$WORK_DIR/jobs.json"; then
+          echo "::warning::pr-risk-tier não conseguiu ler os jobs do CI; dê ao job a permissão actions: read."
+          rm -f "$WORK_DIR/jobs.json"
+        fi
         PYTHONPATH="$GITHUB_ACTION_PATH" python3 -m pr_risk_tier \
-          --rules "$RULES_FILE" --files "$FILES_LIST" --output "$COMMENT_FILE"
+          --rules "$RULES_FILE" --numstat "$WORK_DIR/numstat.txt" \
+          --repo-files "$WORK_DIR/repo-files.txt" --jobs "$WORK_DIR/jobs.json" \
+          --output "$COMMENT_FILE"
         cat "$COMMENT_FILE" >> "$GITHUB_STEP_SUMMARY"
 
     - name: Publish evidence comment

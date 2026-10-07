@@ -10,7 +10,7 @@ paths = ["**/*.md", "LICENSE"]
 [[rule]]
 id = "comment_contract"
 tier = 2
-paths = ["pr_risk_tier/render.py", "pr_risk_tier/rules.py"]
+paths = ["pr_risk_tier/render.py", "pr_risk_tier/rules.py", "pr_risk_tier/evidence.py"]
 
 [[rule]]
 id = "infrastructure"
