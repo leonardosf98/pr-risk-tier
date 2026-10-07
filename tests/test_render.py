@@ -1,5 +1,5 @@
-from pr_evidence.classify import DEFAULT_REASON_ID, Classification, Reason
-from pr_evidence.render import MARKER, render_comment
+from pr_risk_tier.classify import DEFAULT_REASON_ID, Classification, Reason
+from pr_risk_tier.render import MARKER, render_comment
 
 
 def test_comment_starts_with_marker():

@@ -1,6 +1,6 @@
 import pytest
 
-from pr_evidence.globs import matches
+from pr_risk_tier.globs import matches
 
 
 @pytest.mark.parametrize(

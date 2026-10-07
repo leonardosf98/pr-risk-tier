@@ -1,6 +1,6 @@
-from pr_evidence.classify import DEFAULT_REASON_ID, Classification, Reason
+from pr_risk_tier.classify import DEFAULT_REASON_ID, Classification, Reason
 
-MARKER = "<!-- pr-evidence:comment -->"
+MARKER = "<!-- pr-risk-tier:comment -->"
 
 TIER_LABELS = {
     0: "sem efeito em execução",
@@ -13,7 +13,7 @@ REVIEW_GUIDANCE = {
     0: "Leitura rápida: conferir texto e links.",
     1: "Seguir uma ação do usuário pelo diff e ler os testes antes do código.",
     2: (
-        "Comparar o contrato com o outro repositório e conferir migração e compatibilidade "
+        "Comparar o contrato com quem o consome e conferir migração e compatibilidade "
         "antes de ler o resto do diff."
     ),
     3: (
@@ -23,8 +23,8 @@ REVIEW_GUIDANCE = {
 }
 
 FOOTER = (
-    "<sub>Gerado por [pr-evidence](https://github.com/leonardosf98/pr-evidence) "
-    "a partir das regras em `.github/pr-evidence.toml`.</sub>"
+    "<sub>Gerado por [pr-risk-tier](https://github.com/leonardosf98/pr-risk-tier) "
+    "a partir das regras em `.github/pr-risk-tier.toml`.</sub>"
 )
 
 

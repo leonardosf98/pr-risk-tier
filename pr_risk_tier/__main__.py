@@ -2,15 +2,15 @@ import argparse
 import sys
 from pathlib import Path
 
-from pr_evidence.classify import classify
-from pr_evidence.render import render_comment
-from pr_evidence.rules import RulesError, load_rules
+from pr_risk_tier.classify import classify
+from pr_risk_tier.render import render_comment
+from pr_risk_tier.rules import RulesError, load_rules
 
 CONFIG_ERROR = 2
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="pr_evidence")
+    parser = argparse.ArgumentParser(prog="pr_risk_tier")
     parser.add_argument("--rules", required=True, type=Path)
     parser.add_argument("--files", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)

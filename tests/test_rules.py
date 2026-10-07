@@ -1,6 +1,6 @@
 import pytest
 
-from pr_evidence.rules import Rule, RulesError, load_rules
+from pr_risk_tier.rules import Rule, RulesError, load_rules
 
 VALID = """
 size_limit = 400

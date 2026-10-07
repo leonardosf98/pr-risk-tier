@@ -1,5 +1,5 @@
-from pr_evidence.classify import DEFAULT_REASON_ID, Reason, classify
-from pr_evidence.rules import load_rules
+from pr_risk_tier.classify import DEFAULT_REASON_ID, Reason, classify
+from pr_risk_tier.rules import load_rules
 
 RULES = load_rules(
     """

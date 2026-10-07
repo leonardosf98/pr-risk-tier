@@ -1,5 +1,5 @@
-from pr_evidence.__main__ import main
-from pr_evidence.render import MARKER
+from pr_risk_tier.__main__ import main
+from pr_risk_tier.render import MARKER
 
 RULES = """
 [[rule]]

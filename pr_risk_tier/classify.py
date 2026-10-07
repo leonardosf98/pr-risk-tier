@@ -1,8 +1,8 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from pr_evidence.globs import matches
-from pr_evidence.rules import Rules
+from pr_risk_tier.globs import matches
+from pr_risk_tier.rules import Rules
 
 DEFAULT_REASON_ID = "default"
 
