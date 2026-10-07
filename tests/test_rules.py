@@ -44,9 +44,8 @@ def test_rejects_rule_without_tier():
         load_rules('[[rule]]\nid = "api_contract"\npaths = ["a/**"]\n')
 
 
-@pytest.mark.parametrize("tier", [-1, 4, "2"])
-def test_rejects_tier_outside_range(tier):
-    value = f'"{tier}"' if isinstance(tier, str) else tier
+@pytest.mark.parametrize("value", ["-1", "4", '"2"', "true"])
+def test_rejects_tier_outside_range_or_not_integer(value):
     with pytest.raises(RulesError, match="tier"):
         load_rules(f'[[rule]]\nid = "x"\ntier = {value}\npaths = ["a/**"]\n')
 

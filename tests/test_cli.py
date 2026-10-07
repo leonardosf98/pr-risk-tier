@@ -23,6 +23,7 @@ def test_writes_comment_and_exits_zero(tmp_path):
     assert comment.startswith(MARKER)
     assert "Tier 2" in comment
     assert "`src/views/Home.vue`" in comment
+    assert "``" not in comment
 
 
 def test_invalid_rules_exit_non_zero_with_message(tmp_path, capsys):
@@ -43,9 +44,7 @@ def test_missing_rules_file_exit_non_zero(tmp_path, capsys):
     files = tmp_path / "files.txt"
     files.write_text("")
 
-    code = main(
-        ["--rules", str(tmp_path / "nope.toml"), "--files", str(files), "--output", "x.md"]
-    )
+    code = main(["--rules", str(tmp_path / "nope.toml"), "--files", str(files), "--output", "x.md"])
 
     assert code == 2
     assert "nope.toml" in capsys.readouterr().err
