@@ -4,6 +4,7 @@ from pr_risk_tier.evidence import Evidence, JobResult, Size
 from pr_risk_tier.rules import Rules
 
 MARKER = "<!-- pr-risk-tier:comment -->"
+UNPROVEN_TEST = "🔎 teste existe, ainda não provado"
 
 TIER_LABELS = {
     0: "sem efeito em execução",
@@ -163,7 +164,7 @@ def _invariant_rows(agent: AgentBlock | None, checks: tuple[InvariantCheck, ...]
         return ["| Invariantes | ⚠️ nenhuma declarada |"]
     return [
         f"| Invariante · {check.invariant.rule} | "
-        f"{'✅ teste encontrado' if check.problem is None else '❌ ' + check.problem}: "
+        f"{UNPROVEN_TEST if check.problem is None else '❌ ' + check.problem}: "
         f"`{check.invariant.test}` |"
         for check in checks
     ]

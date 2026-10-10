@@ -19,7 +19,7 @@ Quem consome: src/components/LocationForm.vue
 | CI · Lint, typecheck, test, audit | ❌ falhou em `npm audit` · log |
 | Tamanho do diff                   | 133 linhas (+132 −1) · limite do tier 3: 400 ✅ |
 | Arquivos                          | 2 de código · 0 de teste · 4 sem efeito em execução |
-| Invariante · Não salva geometria antiga | ✅ teste encontrado: src/x.spec.ts::does not save… |
+| Invariante · Não salva geometria antiga | 🔎 teste existe, ainda não provado: src/x.spec.ts::does not save… |
 
 ### Incertezas
 Declaradas por quem escreveu:
@@ -108,7 +108,7 @@ O que a máquina não sabe, quem escreveu a PR declara num comentário HTML no c
 
 O JSON começa na linha seguinte a `<!-- pr-risk-tier`; uma menção à sintaxe no meio do texto não conta, e, se houver mais de um bloco, vale o último.
 
-O bloco é **evidência, não autoridade**: a action valida o formato e confere se cada teste citado existe no repositório. O nome do teste é procurado como texto dentro do arquivo, então serve tanto para `test_x` do pytest quanto para o título de um `it('...')`.
+O bloco é **evidência, não autoridade**: a action valida o formato e confere se cada teste citado existe no repositório. O nome do teste é procurado como texto dentro do arquivo, então serve tanto para `test_x` do pytest quanto para o título de um `it('...')`. Por isso a linha diz **🔎 teste existe, ainda não provado**: ela só garante que o teste não foi inventado, não que ele passou nem que verifica a regra.
 
 | Situação | Comentário | Job |
 |----------|------------|-----|
