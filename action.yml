@@ -14,6 +14,7 @@ runs:
   using: composite
   steps:
     - name: Build evidence comment
+      id: build
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
@@ -36,11 +37,18 @@ runs:
           echo "::warning::pr-risk-tier não conseguiu ler os jobs do CI; dê ao job a permissão actions: read."
           rm -f "$WORK_DIR/jobs.json"
         fi
+        jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH" > "$WORK_DIR/body.md"
+        status=0
         PYTHONPATH="$GITHUB_ACTION_PATH" python3 -m pr_risk_tier \
           --rules "$RULES_FILE" --numstat "$WORK_DIR/numstat.txt" \
           --repo-files "$WORK_DIR/repo-files.txt" --jobs "$WORK_DIR/jobs.json" \
-          --output "$COMMENT_FILE"
+          --body "$WORK_DIR/body.md" --repo-root . \
+          --output "$COMMENT_FILE" || status=$?
+        if [ "$status" -eq 2 ]; then
+          exit 2
+        fi
         cat "$COMMENT_FILE" >> "$GITHUB_STEP_SUMMARY"
+        echo "status=$status" >> "$GITHUB_OUTPUT"
 
     - name: Publish evidence comment
       shell: bash
@@ -58,3 +66,10 @@ runs:
           gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
             -F body=@"$COMMENT_FILE" > /dev/null
         fi
+
+    - name: Fail on invalid agent evidence
+      if: steps.build.outputs.status != '0'
+      shell: bash
+      run: |
+        echo "::error::O bloco do agente é inválido ou cita teste inexistente. Veja o comentário da PR."
+        exit 1
