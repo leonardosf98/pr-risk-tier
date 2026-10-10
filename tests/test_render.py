@@ -275,7 +275,7 @@ def test_invariants_become_evidence_rows():
 
     section = _section(comment, "### Evidência")
     assert (
-        "| Invariante · Não salva geometria antiga | ✅ teste encontrado: "
+        "| Invariante · Não salva geometria antiga | 🔎 teste existe, ainda não provado: "
         "`tests/test_form.py::test_keeps_old` |" in section
     )
     assert (

@@ -119,7 +119,7 @@ def test_valid_block_with_existing_test_exits_zero(tmp_path):
     comment = output.read_text()
     assert code == 0
     assert "**Intenção:** Importar talhão" in comment
-    assert "✅ teste encontrado: `tests/test_form.py::test_keeps_old`" in comment
+    assert "🔎 teste existe, ainda não provado: `tests/test_form.py::test_keeps_old`" in comment
 
 
 def test_invariant_citing_missing_test_fails_but_writes_comment(tmp_path, capsys):
