@@ -1,3 +1,4 @@
+from pr_risk_tier.agent_block import AgentBlock, InvariantCheck
 from pr_risk_tier.classify import DEFAULT_REASON_ID, Classification
 from pr_risk_tier.evidence import Evidence, JobResult, Size
 from pr_risk_tier.rules import Rules
@@ -49,6 +50,10 @@ def render_comment(classification: Classification, rules: Rules, evidence: Evide
         MARKER,
         f"## 📦 Pacote de evidências — Tier {tier} · {TIER_LABELS[tier]}",
         "",
+        "### Mudança",
+        "",
+        *_change_lines(evidence.agent),
+        "",
         f"### Por que tier {tier}",
         "",
         *_boundary_table(classification, rules),
@@ -61,10 +66,11 @@ def render_comment(classification: Classification, rules: Rules, evidence: Evide
         f"| Tamanho do diff | {_size_text(evidence.size, tier)} |",
         f"| Arquivos | {evidence.mix.code} de código · {evidence.mix.tests} de teste · "
         f"{evidence.mix.inert} sem efeito em execução |",
+        *_invariant_rows(evidence.agent, evidence.invariant_checks),
         "",
         "### Incertezas",
         "",
-        *(f"- {unknown}" for unknown in _unknowns(evidence, tier)),
+        *_unknown_lines(evidence, tier),
         "",
         "### Revisão sugerida",
         "",
@@ -135,7 +141,60 @@ def _size_text(size: Size, tier: int) -> str:
     return f"{text} · limite do tier {tier}: {size.limit} ✅"
 
 
-def _unknowns(evidence: Evidence, tier: int) -> list[str]:
+def _change_lines(agent: AgentBlock | None) -> list[str]:
+    if agent is None:
+        return [
+            "⚠️ Pacote do agente ausente: a intenção, quem consome a mudança e as incertezas "
+            "não foram declaradas no corpo da PR."
+        ]
+    if agent.report is None:
+        return ["❌ Bloco do agente inválido:", "", *(f"- {error}" for error in agent.errors)]
+    report = agent.report
+    lines = [f"**Intenção:** {report.intent}", "", report.summary]
+    if report.consumers:
+        lines += ["", f"**Quem consome:** {' · '.join(report.consumers)}"]
+    return lines
+
+
+def _invariant_rows(agent: AgentBlock | None, checks: tuple[InvariantCheck, ...]) -> list[str]:
+    if agent is None or agent.report is None:
+        return []
+    if not checks:
+        return ["| Invariantes | ⚠️ nenhuma declarada |"]
+    return [
+        f"| Invariante · {check.invariant.rule} | "
+        f"{'✅ teste encontrado' if check.problem is None else '❌ ' + check.problem}: "
+        f"`{check.invariant.test}` |"
+        for check in checks
+    ]
+
+
+def _unknown_lines(evidence: Evidence, tier: int) -> list[str]:
+    declared = _declared_unknowns(evidence.agent, tier)
+    detected = _detected_unknowns(evidence, tier)
+    if not declared and not detected:
+        return ["Nenhuma incerteza."]
+    lines = []
+    if declared:
+        lines += ["**Declaradas por quem escreveu:**", "", *(f"- {item}" for item in declared)]
+    if detected:
+        if lines:
+            lines.append("")
+        lines += ["**Detectadas pela máquina:**", "", *(f"- {item}" for item in detected)]
+    return lines
+
+
+def _declared_unknowns(agent: AgentBlock | None, tier: int) -> list[str]:
+    if agent is None or agent.report is None:
+        return ["⚠️ Incertezas não declaradas por quem escreveu a PR."]
+    if agent.report.unknowns:
+        return list(agent.report.unknowns)
+    if tier >= 1:
+        return ["⚠️ Nenhuma incerteza declarada por quem escreveu a PR — desconfie."]
+    return []
+
+
+def _detected_unknowns(evidence: Evidence, tier: int) -> list[str]:
     unknowns = []
     if evidence.jobs is None:
         unknowns.append(
@@ -164,7 +223,4 @@ def _unknowns(evidence: Evidence, tier: int) -> list[str]:
         "pode estar errado ou obsoleto."
         for rule_id, pattern in evidence.unmatched
     ]
-    return unknowns or [
-        "Nada detectado automaticamente. A máquina não sabe a intenção da mudança nem as "
-        "regras de negócio: o que ficou sem prova é quem escreveu a PR que precisa dizer."
-    ]
+    return unknowns

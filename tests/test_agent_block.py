@@ -118,3 +118,14 @@ def test_invariant_problems(tmp_path):
         "arquivo não encontrado",
         None,
     ]
+
+
+def test_blank_texts_are_rejected():
+    block = parse_agent_block(
+        _body({"intent": "  ", "summary": "b", "invariants": [{"rule": " ", "test": "a::b"}]})
+    )
+
+    assert block.errors == (
+        "'intent' é obrigatório e deve ser um texto.",
+        "Invariante #1: 'rule' é obrigatório e deve ser um texto.",
+    )
