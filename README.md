@@ -106,6 +106,8 @@ O que a máquina não sabe, quem escreveu a PR declara num comentário HTML no c
 -->
 ```
 
+O JSON começa na linha seguinte a `<!-- pr-risk-tier`; uma menção à sintaxe no meio do texto não conta, e, se houver mais de um bloco, vale o último.
+
 O bloco é **evidência, não autoridade**: a action valida o formato e confere se cada teste citado existe no repositório. O nome do teste é procurado como texto dentro do arquivo, então serve tanto para `test_x` do pytest quanto para o título de um `it('...')`.
 
 | Situação | Comentário | Job |

@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-BLOCK_PATTERN = re.compile(r"<!--\s*pr-risk-tier\s+(.*?)-->", re.DOTALL)
+BLOCK_PATTERN = re.compile(r"<!--\s*pr-risk-tier[ \t]*\r?\n(.*?)-->", re.DOTALL)
 TEST_SEPARATOR = "::"
 
 
@@ -36,11 +36,11 @@ class InvariantCheck:
 
 
 def parse_agent_block(body: str | None) -> AgentBlock | None:
-    match = BLOCK_PATTERN.search(body or "")
-    if match is None:
+    matches = BLOCK_PATTERN.findall(body or "")
+    if not matches:
         return None
     try:
-        data = json.loads(match.group(1))
+        data = json.loads(matches[-1])
     except json.JSONDecodeError as error:
         return AgentBlock(
             None,
