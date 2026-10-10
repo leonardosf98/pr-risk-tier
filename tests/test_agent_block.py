@@ -129,3 +129,18 @@ def test_blank_texts_are_rejected():
         "'intent' é obrigatório e deve ser um texto.",
         "Invariante #1: 'rule' é obrigatório e deve ser um texto.",
     )
+
+
+def test_inline_mention_of_the_syntax_is_not_the_block():
+    body = "A action lê `<!-- pr-risk-tier {json} -->` do corpo.\n\n" + _body(VALID)
+
+    block = parse_agent_block(body)
+
+    assert block.errors == ()
+    assert block.report.intent == VALID["intent"]
+
+
+def test_last_block_wins():
+    body = _body({"intent": "velho", "summary": "b"}) + _body({"intent": "novo", "summary": "b"})
+
+    assert parse_agent_block(body).report.intent == "novo"
