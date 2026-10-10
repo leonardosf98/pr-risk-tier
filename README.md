@@ -5,6 +5,10 @@ GitHub Action que comenta em cada pull request um **pacote de evidências**: o t
 ```
 ## 📦 Pacote de evidências — Tier 3 · segurança ou infraestrutura
 
+### Mudança
+Intenção: permitir importar talhão por shapefile
+Quem consome: src/components/LocationForm.vue
+
 ### Por que tier 3
 | Fronteira          | Tier | Arquivos alterados                      |
 | infrastructure     | 3    | .github/workflows/ci.yml, package.json  |
@@ -15,8 +19,12 @@ GitHub Action que comenta em cada pull request um **pacote de evidências**: o t
 | CI · Lint, typecheck, test, audit | ❌ falhou em `npm audit` · log |
 | Tamanho do diff                   | 133 linhas (+132 −1) · limite do tier 3: 400 ✅ |
 | Arquivos                          | 2 de código · 0 de teste · 4 sem efeito em execução |
+| Invariante · Não salva geometria antiga | ✅ teste encontrado: src/x.spec.ts::does not save… |
 
 ### Incertezas
+Declaradas por quem escreveu:
+- A correção depende do estado interno do Listbox do PrimeVue 4.5.
+Detectadas pela máquina:
 - CI com falha em `Lint, typecheck, test, audit` (`npm audit`): resolver antes de tratar o resto como evidência.
 - 2 arquivo(s) de código sem nenhum teste alterado: o comportamento novo pode não estar coberto.
 
@@ -82,6 +90,33 @@ paths = ["app/schema/**"]
 - `test_paths` separa arquivos de teste dos de código; código alterado sem nenhum teste alterado vira incerteza.
 - Um padrão que não casa nenhum arquivo do repositório também vira incerteza — costuma ser erro de digitação ou pasta renomeada.
 
+## Bloco do agente (corpo da PR)
+
+O que a máquina não sabe, quem escreveu a PR declara num comentário HTML no corpo dela, invisível na página:
+
+```html
+<!-- pr-risk-tier
+{
+  "intent": "Por que a mudança existe (obrigatório)",
+  "summary": "O que mudou, em uma ou duas frases (obrigatório)",
+  "consumers": ["quem usa o que mudou"],
+  "invariants": [{"rule": "o que precisa continuar verdade", "test": "caminho/do/arquivo::nome do teste"}],
+  "unknowns": ["o que não foi provado e por quê"]
+}
+-->
+```
+
+O bloco é **evidência, não autoridade**: a action valida o formato e confere se cada teste citado existe no repositório. O nome do teste é procurado como texto dentro do arquivo, então serve tanto para `test_x` do pytest quanto para o título de um `it('...')`.
+
+| Situação | Comentário | Job |
+|----------|------------|-----|
+| Sem bloco | ⚠️ "Incertezas não declaradas por quem escreveu a PR" | passa |
+| Bloco válido, `unknowns` vazio, tier ≥ 1 | ⚠️ "Nenhuma incerteza declarada… desconfie" | passa |
+| JSON inválido ou campo obrigatório faltando | ❌ lista os erros | **falha** (depois de publicar o comentário) |
+| Invariante cita arquivo ou teste que não existe | ❌ na linha da invariante | **falha** (depois de publicar o comentário) |
+
+O corpo é lido do evento que disparou o run. Editar só a descrição não refaz o comentário; ele é atualizado no próximo push.
+
 ## Desenvolvimento
 
 Python 3.11+, só biblioteca padrão.
@@ -95,6 +130,5 @@ python3 -m venv .venv
 
 ## Próximas versões
 
-- Bloco do agente no corpo da PR (intenção, consumidores, invariantes ligadas a testes, incertezas), validado pela action.
 - Invariante provada pelo relatório JUnit do CI, não só declarada.
 - Tier calculado no início do CI para ligar validação mais forte em T2/T3 (testes de mutação nos arquivos alterados).
