@@ -87,6 +87,60 @@ def test_repo_files_feed_unmatched_patterns(tmp_path):
     assert "Padrão `src/api/**` da regra `api_contract`" in output.read_text()
 
 
+def _block(invariant_test: str) -> str:
+    payload = {
+        "intent": "Importar talhão",
+        "summary": "Novo modo.",
+        "invariants": [{"rule": "Não salva geometria antiga", "test": invariant_test}],
+        "unknowns": ["Só no Chrome."],
+    }
+    return f"Descrição\n\n<!-- pr-risk-tier\n{json.dumps(payload)}\n-->\n"
+
+
+def _repo(tmp_path):
+    root = tmp_path / "repo"
+    (root / "tests").mkdir(parents=True)
+    (root / "tests/test_form.py").write_text("def test_keeps_old():\n    pass\n")
+    return str(root)
+
+
+def test_missing_body_flags_undeclared_unknowns(tmp_path):
+    code, output = _run(tmp_path)
+
+    assert code == 0
+    assert "Incertezas não declaradas por quem escreveu a PR" in output.read_text()
+
+
+def test_valid_block_with_existing_test_exits_zero(tmp_path):
+    body = _write(tmp_path, "body.md", _block("tests/test_form.py::test_keeps_old"))
+
+    code, output = _run(tmp_path, "--body", body, "--repo-root", _repo(tmp_path))
+
+    comment = output.read_text()
+    assert code == 0
+    assert "**Intenção:** Importar talhão" in comment
+    assert "✅ teste encontrado: `tests/test_form.py::test_keeps_old`" in comment
+
+
+def test_invariant_citing_missing_test_fails_but_writes_comment(tmp_path, capsys):
+    body = _write(tmp_path, "body.md", _block("tests/test_form.py::test_imaginary"))
+
+    code, output = _run(tmp_path, "--body", body, "--repo-root", _repo(tmp_path))
+
+    assert code == 1
+    assert "❌ teste não encontrado no arquivo" in output.read_text()
+    assert "test_imaginary" in capsys.readouterr().err
+
+
+def test_invalid_block_fails_but_writes_comment(tmp_path):
+    body = _write(tmp_path, "body.md", "<!-- pr-risk-tier\n{oops}\n-->")
+
+    code, output = _run(tmp_path, "--body", body, "--repo-root", _repo(tmp_path))
+
+    assert code == 1
+    assert "❌ Bloco do agente inválido" in output.read_text()
+
+
 def test_invalid_rules_exit_non_zero_with_message(tmp_path, capsys):
     output = tmp_path / "evidence.md"
 

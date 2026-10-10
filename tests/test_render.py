@@ -1,3 +1,4 @@
+from pr_risk_tier.agent_block import AgentBlock, AgentReport, Invariant, InvariantCheck
 from pr_risk_tier.classify import DEFAULT_REASON_ID, Classification, Reason
 from pr_risk_tier.evidence import Evidence, FileMix, JobResult, Size
 from pr_risk_tier.render import MARKER, render_comment
@@ -24,6 +25,15 @@ paths = ["src/auth/**"]
 """
 )
 
+INVARIANT = Invariant("Não salva geometria antiga", "tests/test_form.py::test_keeps_old")
+REPORT = AgentReport(
+    intent="Permitir importar talhão por shapefile",
+    summary="Novo modo Arquivo no formulário.",
+    consumers=("src/components/LocationForm.vue", "app mobile"),
+    invariants=(INVARIANT,),
+    unknowns=("Só testado no Chrome.",),
+)
+VALID_BLOCK = AgentBlock(report=REPORT, errors=())
 PASSING_JOB = JobResult("Lint and test", "success", "https://ci/1", ())
 SMALL_DIFF = Size(10, 2, 400, enforced=False)
 CODE_AND_TEST = FileMix(code=1, tests=1, inert=0)
@@ -35,8 +45,17 @@ def _evidence(
     mix=CODE_AND_TEST,
     jobs=(PASSING_JOB,),
     unmatched=(),
+    agent=None,
+    invariant_checks=(),
 ):
-    return Evidence(size=size, mix=mix, jobs=jobs, unmatched=unmatched)
+    return Evidence(
+        size=size,
+        mix=mix,
+        jobs=jobs,
+        unmatched=unmatched,
+        agent=agent,
+        invariant_checks=invariant_checks,
+    )
 
 
 def _render(classification, **evidence):
@@ -182,9 +201,91 @@ def test_unmatched_pattern_is_flagged():
     assert "Padrão `app/schema/**` da regra `api_contract` não casa nenhum arquivo" in comment
 
 
-def test_nothing_detected_still_reminds_what_machine_cannot_know():
+def test_missing_agent_block_is_flagged_in_change_and_unknowns():
     comment = _render(Classification(1, ()))
 
+    assert "Pacote do agente ausente" in _section(comment, "### Mudança")
+    unknowns = _section(comment, "### Incertezas")
+    assert "⚠️ Incertezas não declaradas por quem escreveu a PR." in unknowns
+    assert "Nada detectado" not in comment
+
+
+def test_change_section_comes_first():
+    comment = _render(Classification(1, ()), agent=VALID_BLOCK)
+
+    assert comment.index("### Mudança") < comment.index("### Por que tier 1")
+
+
+def test_agent_report_fills_change_section():
+    comment = _render(Classification(1, ()), agent=VALID_BLOCK)
+
+    section = _section(comment, "### Mudança")
+    assert "**Intenção:** Permitir importar talhão por shapefile" in section
+    assert "Novo modo Arquivo no formulário." in section
+    assert "**Quem consome:** src/components/LocationForm.vue · app mobile" in section
+
+
+def test_declared_and_detected_unknowns_are_grouped():
+    comment = _render(
+        Classification(1, ()), agent=VALID_BLOCK, mix=FileMix(code=2, tests=0, inert=0)
+    )
+
     section = _section(comment, "### Incertezas")
-    assert "Nada detectado automaticamente." in section
-    assert "intenção" in section
+    declared_at = section.index("**Declaradas por quem escreveu:**")
+    detected_at = section.index("**Detectadas pela máquina:**")
+    assert declared_at < section.index("- Só testado no Chrome.") < detected_at
+    assert section.index("sem nenhum teste alterado") > detected_at
+
+
+def test_empty_declared_unknowns_from_tier_one_are_suspicious():
+    report = AgentReport("a", "b", (), (), ())
+    comment = _render(Classification(1, ()), agent=AgentBlock(report, ()))
+
+    assert "Nenhuma incerteza declarada por quem escreveu a PR — desconfie." in comment
+
+
+def test_empty_declared_unknowns_on_tier_zero_are_fine():
+    report = AgentReport("a", "b", (), (), ())
+    comment = _render(Classification(0, ()), agent=AgentBlock(report, ()))
+
+    assert "desconfie" not in comment
+    assert "Nenhuma incerteza." in _section(comment, "### Incertezas")
+
+
+def test_invalid_agent_block_lists_errors():
+    block = AgentBlock(report=None, errors=("'intent' é obrigatório e deve ser um texto.",))
+    comment = _render(Classification(1, ()), agent=block)
+
+    section = _section(comment, "### Mudança")
+    assert "❌ Bloco do agente inválido" in section
+    assert "- 'intent' é obrigatório e deve ser um texto." in section
+    assert "Incertezas não declaradas" in _section(comment, "### Incertezas")
+
+
+def test_invariants_become_evidence_rows():
+    missing = Invariant("Limite de área", "tests/test_limits.py::test_gone")
+    comment = _render(
+        Classification(1, ()),
+        agent=VALID_BLOCK,
+        invariant_checks=(
+            InvariantCheck(INVARIANT, None),
+            InvariantCheck(missing, "teste não encontrado no arquivo"),
+        ),
+    )
+
+    section = _section(comment, "### Evidência")
+    assert (
+        "| Invariante · Não salva geometria antiga | ✅ teste encontrado: "
+        "`tests/test_form.py::test_keeps_old` |" in section
+    )
+    assert (
+        "| Invariante · Limite de área | ❌ teste não encontrado no arquivo: "
+        "`tests/test_limits.py::test_gone` |" in section
+    )
+
+
+def test_agent_block_without_invariants_says_so():
+    report = AgentReport("a", "b", (), (), ("x",))
+    comment = _render(Classification(1, ()), agent=AgentBlock(report, ()))
+
+    assert "| Invariantes | ⚠️ nenhuma declarada |" in comment
