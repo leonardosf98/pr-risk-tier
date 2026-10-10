@@ -2,6 +2,7 @@ import json
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from pr_risk_tier.agent_block import AgentBlock, InvariantCheck
 from pr_risk_tier.classify import strongest_rule
 from pr_risk_tier.globs import matches
 from pr_risk_tier.rules import Rules
@@ -54,6 +55,8 @@ class Evidence:
     mix: FileMix
     jobs: tuple[JobResult, ...] | None
     unmatched: tuple[tuple[str, str], ...] = ()
+    agent: AgentBlock | None = None
+    invariant_checks: tuple[InvariantCheck, ...] = ()
 
 
 def parse_numstat(text: str) -> tuple[FileChange, ...]:
